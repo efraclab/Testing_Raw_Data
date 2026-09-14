@@ -1968,6 +1968,27 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
                   break;
                 }
 
+                case "ndma_validation_batch_analysis":
+                case "povidone_limit_of_aldehyde":
+                case "prilocaine_assay":
+                case "castor_oil_fatty_acid":
+                case "hec_ethoxy_content":
+                case "hpc_assay":
+                case "lhpc_hydroxypropoxy_content":
+                case "magnesium_stearate_fatty_acid":
+                case "nefopam_residual_solvent":
+                case "polyoxyl_35_castor_oil_glycols": {
+                  restoredCalculations.generic.push({
+                    ...parsedData,
+                    id: baseId + 10040,
+                    label: parsedData.label || calc.label,
+                    templateId:
+                      parsedData.templateId ||
+                      calcType,
+                  });
+                  break;
+                }
+
                 case "assay_nitrosamine": {
                   const nitroCalc: CalculationAssayNitrosamine = {
                     id: baseId + 8950,
