@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where python *)",
+      "Bash(where py *)",
+      "Bash(awk 'NR<261||NR>326' src/components/MetalWorksheet.tsx)",
+      "Bash(awk 'NR<296||NR>385' src/components/MetalWorksheet.tsx)",
+      "Bash(awk 'NR<317||NR>376' src/components/MetalWorksheet.tsx)",
+      "Read(//tmp/**)"
+    ]
+  }
+}
