@@ -1,5 +1,37 @@
 import { PREPARATION_GROUPS } from "../components/worksheets/drugs/drugWorksheetConfig";
 
+
+// Generic calculation groups do not necessarily create a preparation row.
+// Persist a minimal generic calculation row as soon as the group is selected,
+// so Save Draft has a calculationType/templateId from which the worksheet
+// restorer can reconstruct activePreparationGroups after reopening.
+const GENERIC_GROUP_TEMPLATE_IDS: Record<string, string> = {
+  assayTitration: "assay_titration",
+  betadexBatchAnalysis: "betadex_batch_analysis",
+  standardizedTitrationAssay: "standardized_titration_assay",
+  dibasicSodiumPhosphateAssay: "dibasic_sodium_phosphate_assay",
+  freeCarboxylGroups: "free_carboxyl_groups",
+  glycerolBehenateFreeGlycerol: "glycerol_behenate_free_glycerol",
+  glycerolBehenateAssay: "glycerol_behenate_assay",
+  hydrogenatedCastorOilComposition: "hydrogenated_castor_oil_composition",
+  ketotifenHydrogenFumarateAssay: "ketotifen_hydrogen_fumarate_assay",
+  lecithinSingleLinearity: "lecithin_single_linearity",
+  lecithinBatchAnalysis: "lecithin_batch_analysis",
+  lipoidsAssay: "lipoids_assay",
+  lipoidsImpurity: "lipoids_impurity",
+  logarithmicCalculation4Point: "logarithmic_calculation_4_point",
+  ndmaValidationBatchAnalysis: "ndma_validation_batch_analysis",
+  povidoneLimitOfAldehyde: "povidone_limit_of_aldehyde",
+  prilocaineAssay: "prilocaine_assay",
+  castorOilFattyAcid: "castor_oil_fatty_acid",
+  hecEthoxyContent: "hec_ethoxy_content",
+  hpcAssay: "hpc_assay",
+  lhpcHydroxypropoxyContent: "lhpc_hydroxypropoxy_content",
+  magnesiumStearateFattyAcid: "magnesium_stearate_fatty_acid",
+  nefopamResidualSolvent: "nefopam_residual_solvent",
+  polyoxyl35CastorOilGlycols: "polyoxyl_35_castor_oil_glycols",
+};
+
 export function useDrugPreparationGroupToggle(ctx: any) {
   const {
     setActivePreparationGroups,
@@ -850,6 +882,49 @@ export function useDrugPreparationGroupToggle(ctx: any) {
 
       // Clear all existing groups for this parameter (single-select)
       currentGroups.forEach(clearGroup);
+
+      // IMPORTANT:
+      // activePreparationGroups is UI-only state. For generic calculation
+      // templates, selecting the group may not create any preparation row.
+      // Create one empty calculation row immediately so Save Draft persists
+      // the templateId/calculationType even when the analyst has not entered
+      // any values yet. On reopen, useDrugWorksheetStateRestorer can then
+      // detect that calculationType and restore this preparation group.
+      const genericTemplateId = GENERIC_GROUP_TEMPLATE_IDS[groupId];
+
+      if (genericTemplateId) {
+        const selectedGroup =
+          PREPARATION_GROUPS[groupId as keyof typeof PREPARATION_GROUPS];
+
+        setCalculationsGenericPerParam((p: any) => {
+          const existingRows = p[parameterId] || [];
+
+          // Do not duplicate a row when the template already has saved data.
+          if (
+            existingRows.some(
+              (calc: any) => calc?.templateId === genericTemplateId,
+            )
+          ) {
+            return p;
+          }
+
+          return {
+            ...p,
+            [parameterId]: [
+              ...existingRows,
+              {
+                id: Date.now(),
+                label: selectedGroup?.label || genericTemplateId,
+                templateId: genericTemplateId,
+                selectedStandardPreparationLabel: null,
+                selectedSamplePreparationLabel: null,
+                values: {},
+                groupValues: {},
+              },
+            ],
+          };
+        });
+      }
 
       return {
         ...prev,
