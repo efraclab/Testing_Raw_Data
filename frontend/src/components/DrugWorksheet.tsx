@@ -65,6 +65,7 @@ import { useDrugAnalystSelectionHandler } from "../hooks/useDrugAnalystSelection
 import { useDrugRemoveParameterHandler } from "../hooks/useDrugRemoveParameterHandler";
 import { useDrugWorksheetUiActions } from "../hooks/useDrugWorksheetUiActions";
 import { useDrugSaveDraftHandler } from "../hooks/useDrugSaveDraftHandler";
+import { useWorksheetAutoSave } from "../hooks/useWorksheetAutoSave";
 import { useDrugSubmitForAnalysisHandler } from "../hooks/useDrugSubmitForAnalysisHandler";
 import { useDrugStartRevisionHandler } from "../hooks/useDrugStartRevisionHandler";
 import { useDrugReloadWorksheet } from "../hooks/useDrugReloadWorksheet";
@@ -1832,6 +1833,19 @@ const {
     setShowParameterDropdown,
   });
 
+  // ── Auto-save (silent, no reload, no toast) ──
+  const { status: autoSaveStatus, lastSavedAt } = useWorksheetAutoSave({
+    enabled:
+      !isLoading &&
+      !!worksheetInfo &&
+      worksheetInfo.sample?.status !== "Approved",
+    collect: collectFormDataForAPI,
+    role,
+    worksheetId,
+    isBusy: isSaving || isSubmitting || isSubmittingForQA || isApprovingWorksheet,
+    resetKey: worksheetInfo,
+  });
+
   useDrugWorksheetSidebarBridge({
     addedParameters,
     parameterStatusPerParam,
@@ -1991,6 +2005,14 @@ const {
 
   return (
     <>
+      {autoSaveStatus !== "idle" && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg border border-gray-200 bg-white/95 px-3 py-1.5 text-xs text-gray-600 shadow print:hidden">
+          {autoSaveStatus === "saving" && "Saving…"}
+          {autoSaveStatus === "saved" && lastSavedAt && `Saved ${lastSavedAt.toLocaleTimeString()}`}
+          {autoSaveStatus === "dirty" && "Unsaved changes"}
+          {autoSaveStatus === "error" && "Auto-save failed – will retry"}
+        </div>
+      )}
       <DrugWorksheetUiSupport
         showToast={showToast}
         toastMessage={toastMessage}

@@ -49,6 +49,7 @@ import {
   insertWorksheetLog,
   revertApproval,
 } from "../services/api";
+import { useWorksheetAutoSave } from "../hooks/useWorksheetAutoSave";
 import type { WorksheetDetail } from "../models/WorksheetDetail";
 import type { WorksheetRequest } from "../models/WorksheetRequest";
 import type { ParameterDetail } from "../models/ParameterDetail";
@@ -4452,6 +4453,19 @@ const MetalWorksheet: React.FC<WorksheetProps> = ({
   //   • Every click always invokes the current closure
   //
   const _printRef = useRef(handlePrintClick);
+  // ── Auto-save (silent, no reload, no toast) ──
+  const { status: autoSaveStatus, lastSavedAt } = useWorksheetAutoSave({
+    enabled:
+      !isLoading &&
+      !!worksheetInfo &&
+      worksheetInfo.sample?.status !== "Approved",
+    collect: collectFormDataForAPI,
+    role,
+    worksheetId,
+    isBusy: isSaving || isSubmitting || isSubmittingForQA || isApprovingWorksheet,
+    resetKey: worksheetInfo,
+  });
+
   const _saveDraftRef = useRef(handleSaveDraft);
   const _submitAnalysisRef = useRef(() => setShowSubmitDialog(true));
   const _submitQARef = useRef(() => setShowSubmitForQADialog(true));
@@ -11357,6 +11371,14 @@ const MetalWorksheet: React.FC<WorksheetProps> = ({
 
   return (
     <>
+      {autoSaveStatus !== "idle" && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg border border-gray-200 bg-white/95 px-3 py-1.5 text-xs text-gray-600 shadow print:hidden">
+          {autoSaveStatus === "saving" && "Saving…"}
+          {autoSaveStatus === "saved" && lastSavedAt && `Saved ${lastSavedAt.toLocaleTimeString()}`}
+          {autoSaveStatus === "dirty" && "Unsaved changes"}
+          {autoSaveStatus === "error" && "Auto-save failed – will retry"}
+        </div>
+      )}
       <Toast
         isVisible={showToast}
         message={toastMessage}
