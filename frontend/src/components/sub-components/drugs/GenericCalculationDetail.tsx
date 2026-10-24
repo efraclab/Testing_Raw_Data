@@ -248,11 +248,12 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
         return (
           <div key={group.name} className="mb-6">
             <h4 className="text-sm font-semibold text-gray-700 mb-2">{group.label}</h4>
-            <table className="w-full text-sm border-collapse">
+            <div className="overflow-x-auto pb-2">
+            <table className="min-w-full text-sm border-collapse">
               <thead>
                 <tr>
                   {fields.map((f) => (
-                    <th key={f.name} className="text-left text-xs font-medium text-gray-500 pb-2 pr-3">
+                    <th key={f.name} className="text-left text-xs font-medium text-gray-500 pb-2 pr-3 whitespace-nowrap">
                       {f.label}{f.unit ? ` (${f.unit})` : ""}
                     </th>
                   ))}
@@ -284,7 +285,7 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                             onChange={(e) =>
                               onGroupFieldChange(group.name, rowIndex, field.name, e.target.value)
                             }
-                            className={`w-full px-2 py-1 rounded-md border text-sm ${
+                            className={`w-full min-w-[6rem] px-2 py-1 rounded-md border text-sm ${
                               field.source === "computed"
                                 ? "bg-gray-50 border-gray-200 text-gray-600"
                                 : "bg-white border-gray-300"
@@ -308,6 +309,7 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                 ))}
               </tbody>
             </table>
+            </div>
 
             {group.repeat === "dynamic" && !disabled && (
               <button
