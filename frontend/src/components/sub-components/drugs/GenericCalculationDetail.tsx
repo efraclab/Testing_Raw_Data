@@ -97,7 +97,25 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
 
   // The engine still evaluates the current row on render, but calculated
   // values are only exposed after the analyst explicitly clicks Calculate Result.
-  const computed = useGenericCalculationEngine(template, row);
+  // Fixed groups (e.g. Standardization, count: 3) must always show their rows,
+  // even when the saved row has empty groupValues. Pad missing rows with {} so
+  // both the form and the calculation engine see the full set of rows.
+  const paddedRow = React.useMemo(() => {
+    const groupValues = { ...(row.groupValues || {}) };
+    template.groups.forEach((g) => {
+      const min = g.repeat === "fixed" ? g.count ?? 1 : g.minRows ?? g.count ?? 1;
+      const saved = groupValues[g.name] || [];
+      if (saved.length < min) {
+        groupValues[g.name] = [
+          ...saved,
+          ...Array.from({ length: min - saved.length }, () => ({})),
+        ];
+      }
+    });
+    return { ...row, groupValues };
+  }, [row, template]);
+
+  const computed = useGenericCalculationEngine(template, paddedRow);
 
   const hasSavedCalculatedResults = React.useMemo(() => {
     const topLevelHasComputed = template.fields.some(
@@ -198,7 +216,7 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                     ? truncateDisplayTo4Decimals(computed.values[field.name])
                     : ""
                 )
-              : row.values[field.name];
+              : row.values?.[field.name];
           return (
             <div key={field.name}>
               <label className="block text-xs font-medium text-gray-500 mb-1">
@@ -224,7 +242,7 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
       {/* One table per group, e.g. Standardization (fixed, 3 rows), Sample Analysis (dynamic) */}
       {template.groups.map((group) => {
         const fields = template.fields.filter((f) => f.group === group.name);
-        const rows = row.groupValues[group.name] || [];
+        const rows = paddedRow.groupValues[group.name] || [];
         const computedRows = computed.groupValues[group.name] || rows;
 
         return (

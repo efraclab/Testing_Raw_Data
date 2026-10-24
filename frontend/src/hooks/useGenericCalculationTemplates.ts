@@ -17,7 +17,7 @@ import { GENERIC_CALCULATION_TEMPLATES as FALLBACK_TEMPLATES } from "../preparat
 // Matches API_BASE_URL in api.ts exactly - ideally this constant should be
 // exported from api.ts and imported here instead of duplicated, to avoid
 // the two drifting apart if the URL ever changes.
-const API_BASE_URL = "http://localhost:5162/api";
+const API_BASE_URL = "http://localhost:5191/api";
 
 interface RawTemplateFromApi {
   templateId: string;
