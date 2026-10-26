@@ -5927,14 +5927,22 @@ const MetalWorksheet: React.FC<WorksheetProps> = ({
     (chem) =>
       chem.name.toLowerCase().includes(chemicalSearch.toLowerCase()) ||
       (chem.make &&
-        chem.make.toLowerCase().includes(chemicalSearch.toLowerCase())),
+        chem.make.toLowerCase().includes(chemicalSearch.toLowerCase())) ||
+      (chem.batchNo &&
+        String(chem.batchNo)
+          .toLowerCase()
+          .includes(chemicalSearch.trim().toLowerCase())),
   );
 
   const searchFilteredStandards = standards.filter(
     (std) =>
       std.name.toLowerCase().includes(standardSearch.toLowerCase()) ||
       (std.make &&
-        std.make.toLowerCase().includes(standardSearch.toLowerCase())),
+        std.make.toLowerCase().includes(standardSearch.toLowerCase())) ||
+      (std.batchNo &&
+        String(std.batchNo)
+          .toLowerCase()
+          .includes(standardSearch.trim().toLowerCase())),
   );
 
   const handleAddInstrument = (instrument: WorksheetInstrument) => {
@@ -19000,4 +19008,4 @@ const MetalWorksheet: React.FC<WorksheetProps> = ({
   );
 };
 
-export default MetalWorksheet; 
+export default MetalWorksheet;

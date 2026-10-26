@@ -3518,7 +3518,11 @@ const MicroWorksheet: React.FC<WorksheetProps> = ({
         (chem) =>
             chem.name.toLowerCase().includes(chemicalSearch.toLowerCase()) ||
             (chem.make &&
-                chem.make.toLowerCase().includes(chemicalSearch.toLowerCase())),
+                chem.make.toLowerCase().includes(chemicalSearch.toLowerCase())) ||
+            (chem.batchNo &&
+                String(chem.batchNo)
+                    .toLowerCase()
+                    .includes(chemicalSearch.trim().toLowerCase())),
     );
 
     const handleAddInstrument = (instrument: WorksheetInstrument) => {
@@ -10689,4 +10693,4 @@ const MicroWorksheet: React.FC<WorksheetProps> = ({
     );
 };
 
-export default MicroWorksheet; 
+export default MicroWorksheet;

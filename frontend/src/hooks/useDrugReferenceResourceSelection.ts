@@ -42,14 +42,22 @@ export function useDrugReferenceResourceSelection(ctx: any) {
     (chem) =>
       chem.name.toLowerCase().includes(chemicalSearch.toLowerCase()) ||
       (chem.make &&
-        chem.make.toLowerCase().includes(chemicalSearch.toLowerCase())),
+        chem.make.toLowerCase().includes(chemicalSearch.toLowerCase())) ||
+      (chem.batchNo &&
+        String(chem.batchNo)
+          .toLowerCase()
+          .includes(chemicalSearch.trim().toLowerCase())),
   );
 
   const searchFilteredStandards = standards.filter(
     (std) =>
       std.name.toLowerCase().includes(standardSearch.toLowerCase()) ||
       (std.make &&
-        std.make.toLowerCase().includes(standardSearch.toLowerCase())),
+        std.make.toLowerCase().includes(standardSearch.toLowerCase())) ||
+      (std.batchNo &&
+        String(std.batchNo)
+          .toLowerCase()
+          .includes(standardSearch.trim().toLowerCase())),
   );
 
 
