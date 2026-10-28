@@ -67,6 +67,12 @@ export interface GenericCalculationTemplate {
   version: number;
   fields: GenericCalculationField[];
   groups: GenericCalculationGroup[];
+  /**
+   * Name of the computed field that the Lower/Upper limits are checked
+   * against (e.g. "resultPercent"). If omitted, a computed field named
+   * "result" is used when present; otherwise the template shows no limits.
+   */
+  limitField?: string;
 }
 
 // ---------------------------------------------------------------------

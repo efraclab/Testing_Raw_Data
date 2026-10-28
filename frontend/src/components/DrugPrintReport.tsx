@@ -361,6 +361,204 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
   };
 
 
+  /**
+   * Read field source metadata from a calculation/template recipe when it is
+   * included in the API response. Recipes have existed in a few response
+   * shapes, so this intentionally walks nested objects instead of assuming a
+   * single schema. A field is printable only when its recipe source is
+   * explicitly "input" or "computed".
+   */
+  const getCalculationFieldSources = (calc: any, calcData: any): Map<string, string> => {
+    const sources = new Map<string, string>();
+    const candidates = [
+      calc?.recipe_json,
+      calc?.recipeJson,
+      calc?.recipe,
+      calc?.template?.recipe_json,
+      calc?.template?.recipeJson,
+      calc?.calculationTemplate?.recipe_json,
+      calc?.calculationTemplate?.recipeJson,
+      calcData?.recipe_json,
+      calcData?.recipeJson,
+      worksheetInfo as any,
+    ];
+    const seen = new Set<any>();
+    const sourceNames = new Set([
+      "input", "computed", "system", "database", "constant", "config", "system-populated",
+    ]);
+
+    const visit = (value: any, depth = 0) => {
+      if (value == null || depth > 12) return;
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+          const parsed = safeJSONParse(trimmed, null);
+          if (parsed && typeof parsed === "object") visit(parsed, depth + 1);
+        }
+        return;
+      }
+      if (typeof value !== "object" || seen.has(value)) return;
+      seen.add(value);
+      if (Array.isArray(value)) {
+        value.forEach((item) => visit(item, depth + 1));
+        return;
+      }
+
+      const rawSource = value.source ?? value.dataSource ?? value.fieldSource ?? value.valueSource;
+      const source = typeof rawSource === "string" ? rawSource.trim().toLowerCase() : "";
+      if (sourceNames.has(source)) {
+        const fieldNames = [
+          value.key, value.name, value.field, value.fieldName, value.parameterName,
+          value.variable, value.id, value.code,
+        ];
+        fieldNames.forEach((fieldName) => {
+          if (typeof fieldName === "string" && fieldName.trim()) {
+            sources.set(fieldName.trim(), source);
+          }
+        });
+      }
+      Object.values(value).forEach((child) => visit(child, depth + 1));
+    };
+
+    candidates.forEach((candidate) => visit(safeJSONParse(candidate, candidate)));
+    return sources;
+  };
+
+  /**
+   * Find calculated fields that are final outputs rather than intermediate
+   * values. A computed field is considered intermediate when another computed
+   * formula references it. This keeps logs, weighted means, slope components,
+   * and similar working values out of the report while preserving user inputs
+   * and final calculated results.
+   */
+  const getCalculationComputedOutputFields = (calc: any, calcData: any): Set<string> => {
+    const fields = new Map<string, { source: string; formula: string }>();
+    const candidates = [
+      calc?.recipe_json,
+      calc?.recipeJson,
+      calc?.recipe,
+      calc?.template?.recipe_json,
+      calc?.template?.recipeJson,
+      calc?.calculationTemplate?.recipe_json,
+      calc?.calculationTemplate?.recipeJson,
+      calcData?.recipe_json,
+      calcData?.recipeJson,
+      worksheetInfo as any,
+    ];
+    const seen = new Set<any>();
+    const visit = (value: any, depth = 0) => {
+      if (value == null || depth > 12) return;
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+          const parsed = safeJSONParse(trimmed, null);
+          if (parsed && typeof parsed === "object") visit(parsed, depth + 1);
+        }
+        return;
+      }
+      if (typeof value !== "object" || seen.has(value)) return;
+      seen.add(value);
+      if (Array.isArray(value)) {
+        value.forEach((item) => visit(item, depth + 1));
+        return;
+      }
+      const name = value.name ?? value.key ?? value.fieldName ?? value.field ?? value.variable;
+      const rawSource = value.source ?? value.dataSource ?? value.fieldSource ?? value.valueSource;
+      const source = typeof rawSource === "string" ? rawSource.trim().toLowerCase() : "";
+      const formula = typeof value.formula === "string" ? value.formula : "";
+      if (typeof name === "string" && name.trim() && source === "computed") {
+        fields.set(name.trim(), { source, formula });
+      }
+      Object.values(value).forEach((child) => visit(child, depth + 1));
+    };
+    candidates.forEach((candidate) => visit(safeJSONParse(candidate, candidate)));
+
+    const referencedByAnotherComputedField = new Set<string>();
+    for (const [fieldName, field] of fields) {
+      for (const [otherName, otherField] of fields) {
+        if (fieldName === otherName || !otherField.formula) continue;
+        // Escape recipe field names before using them as regular expressions.
+        const escapedName = fieldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        if (new RegExp(`\\b${escapedName}\\b`, "i").test(otherField.formula)) {
+          referencedByAnotherComputedField.add(fieldName);
+          break;
+        }
+      }
+    }
+    return new Set([...fields.keys()].filter((name) => !referencedByAnotherComputedField.has(name)));
+  };
+
+  /**
+   * Some API versions wrap calculation results as
+   * { templateId, values: {...}, groupValues: {...} }. Do not render those
+   * wrapper properties as report rows (they cause "[object Object]"). Instead,
+   * flatten their actual field values for the calculation details table.
+   */
+  const getCalculationDisplayData = (rawData: any): Record<string, any> => {
+    const data = safeJSONParse(rawData, {});
+    if (!data || typeof data !== "object" || Array.isArray(data)) return {};
+
+    const wrapperKeys = new Set([
+      "templateId", "template_id", "templateName", "template_name",
+      "values", "groupValues", "group_values", "recipe", "recipeJson",
+      "recipe_json", "version", "calculationType", "calculation_type",
+    ]);
+    const result: Record<string, any> = {};
+
+    const addLeaves = (value: any, prefix = "", depth = 0) => {
+      if (value == null || depth > 10) return;
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+          if (item !== null && typeof item === "object") {
+            addLeaves(item, prefix ? `${prefix} ${index + 1}` : String(index + 1), depth + 1);
+          } else if (item !== null && item !== "") {
+            result[prefix ? `${prefix} ${index + 1}` : String(index + 1)] = item;
+          }
+        });
+        return;
+      }
+      if (typeof value === "object") {
+        // Some APIs represent each field as { value: ..., source: ..., unit: ... }.
+        // Render the field under its own name rather than creating a "field.value" row.
+        const fieldValue = value.value ?? value.currentValue ?? value.calculatedValue;
+        if (prefix && fieldValue !== undefined && fieldValue !== null && typeof fieldValue !== "object") {
+          result[prefix] = fieldValue;
+          return;
+        }
+        Object.entries(value).forEach(([childKey, childValue]) => {
+          // Metadata objects are not calculation values.
+          if (["source", "dataSource", "fieldSource", "valueSource", "formula", "type", "label", "unit", "value", "currentValue", "calculatedValue"].includes(childKey)) return;
+          const nextKey = prefix ? `${prefix}.${childKey}` : childKey;
+          if (childValue !== null && typeof childValue === "object") {
+            addLeaves(childValue, nextKey, depth + 1);
+          } else if (childValue !== null && childValue !== "") {
+            result[nextKey] = childValue;
+          }
+        });
+        return;
+      }
+      if (prefix && value !== "") result[prefix] = value;
+    };
+
+    const hasWrappedValues = data.values && typeof data.values === "object";
+    if (hasWrappedValues) {
+      addLeaves(data.values);
+      if (data.groupValues && typeof data.groupValues === "object") addLeaves(data.groupValues);
+      // Keep any other top-level primitive calculation fields, but not wrapper metadata.
+      Object.entries(data).forEach(([key, value]) => {
+        if (wrapperKeys.has(key) || value == null || value === "" || typeof value === "object") return;
+        result[key] = value;
+      });
+      return result;
+    }
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (wrapperKeys.has(key) || value == null || value === "" || typeof value === "object") return;
+      result[key] = value;
+    });
+    return result;
+  };
+
   const formatCalcType = (type: string | null | undefined): string => {
     if (!type) return "";
     const t = type.toLowerCase();
@@ -3540,6 +3738,11 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
                     </h4>
                     {param.calculations.map((calc: any, idx: number) => {
                       const calcData = safeJSONParse(calc.data, {});
+                      const calcDisplayData = getCalculationDisplayData(calcData);
+                      const calculationFieldSources = getCalculationFieldSources(calc, calcData);
+                      const calculationComputedOutputs = getCalculationComputedOutputFields(calc, calcData);
+                      const hasCalculationFieldSources = calculationFieldSources.size > 0;
+                      const hasCalculationComputedOutputs = calculationComputedOutputs.size > 0;
                       const isDissoProfileCalc = calc.calculationType?.toLowerCase() === "dissolution_profile";
                       const isDissoCalc = calc.calculationType
                         ?.toLowerCase()
@@ -3562,13 +3765,38 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
                               <div>
                                 <table className="w-full text-sm">
                                   <tbody>
-                                    {Object.entries(calcData).map(
+                                    {Object.entries(calcDisplayData).map(
                                       ([key, value]: [string, any]) => {
                                         if (key.includes("mgPerTabletResult")) return null;
+
+                                        // When recipe metadata is available, print only values
+                                        // explicitly classified as user inputs or calculated outputs.
+                                        // Formula constants and system/database/config fields are omitted.
+                                        if (hasCalculationFieldSources) {
+                                          const fieldSource = calculationFieldSources.get(key);
+                                          if (fieldSource === "input") {
+                                            // Keep user-entered values.
+                                          } else if (fieldSource === "computed") {
+                                            // Keep only terminal computed outputs; hide intermediate
+                                            // logs, weighted means, slope parts, and other workings.
+                                            if (hasCalculationComputedOutputs && !calculationComputedOutputs.has(key)) return null;
+                                          } else {
+                                            return null;
+                                          }
+                                        } else if (
+                                          calc.calculationType?.toLowerCase().includes("logarithmic_calculation_4_point") ||
+                                          calcData?.templateId === "logarithmic_calculation_4_point"
+                                        ) {
+                                          // Safe fallback for older API responses that don't include
+                                          // recipe metadata for this template.
+                                          const finalLogOutputs = new Set(["standard1", "reading1", "standard2", "reading2", "standard3", "reading3", "standard4", "reading4", "unknownReading", "sampleWeight", "resultTimes100", "resultTimes100Div10000"]);
+                                          if (!finalLogOutputs.has(key)) return null;
+                                        }
 
                                         if (
                                           key === "id" ||
                                           key === "label" ||
+                                          typeof value === "object" ||
                                           value === null ||
                                           value === "" ||
                                           key.toLowerCase().includes("unit") ||
@@ -3664,8 +3892,8 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
 
                                     {/* Combined Acceptance Limit row */}
                                     {(() => {
-                                      const rawMin = calcData.acceptanceLimitMin;
-                                      const rawMax = calcData.acceptanceLimitMax;
+                                      const rawMin = calcDisplayData.acceptanceLimitMin;
+                                      const rawMax = calcDisplayData.acceptanceLimitMax;
                                       const lMin = rawMin != null && rawMin !== "" ? parseFloat(String(rawMin)) : null;
                                       const lMax = rawMax != null && rawMax !== "" ? parseFloat(String(rawMax)) : null;
                                       const hasMin = lMin !== null && !isNaN(lMin);

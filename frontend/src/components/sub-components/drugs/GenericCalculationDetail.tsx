@@ -50,6 +50,53 @@ const truncateDisplayTo4Decimals = (
   return truncated.toFixed(4);
 };
 
+type LimitVerdict = "pass" | "fail" | "none";
+
+const parseLimit = (value: string | null | undefined): number | null => {
+  if (value === null || value === undefined || value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+// Compares the value exactly as shown on screen (truncated to 4 decimals),
+// so the verdict always matches what the analyst and reviewer can see.
+// Limits are inclusive. Either limit may be left empty (e.g. NLT / NMT only).
+const evaluateLimit = (
+  rawValue: string | number | null | undefined,
+  lower: number | null,
+  upper: number | null,
+): LimitVerdict => {
+  if (lower === null && upper === null) return "none";
+  if (lower !== null && upper !== null && lower > upper) return "none";
+
+  const shown = truncateDisplayTo4Decimals(rawValue);
+  if (shown === "") return "none";
+
+  const value = Number(shown);
+  if (!Number.isFinite(value)) return "none";
+
+  if (lower !== null && value < lower) return "fail";
+  if (upper !== null && value > upper) return "fail";
+  return "pass";
+};
+
+const VerdictBadge: React.FC<{ verdict: LimitVerdict }> = ({ verdict }) => {
+  if (verdict === "none") {
+    return <span className="text-xs text-gray-400">-</span>;
+  }
+  return (
+    <span
+      className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold ${
+        verdict === "pass"
+          ? "bg-emerald-100 text-emerald-800"
+          : "bg-red-100 text-red-700"
+      }`}
+    >
+      {verdict === "pass" ? "PASS" : "FAIL"}
+    </span>
+  );
+};
+
 interface GenericCalculationDetailProps {
   parameterId: number;
   template: GenericCalculationTemplate;
@@ -157,6 +204,46 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
     (g) => g.linksToSamplePreparation,
   );
 
+  // ---- Acceptance limits ------------------------------------------------
+  // Limits are stored in row.values (keys: limitLower / limitUpper), so they
+  // are saved and restored with the calculation with no other plumbing.
+  const limitFieldName =
+    template.limitField ??
+    (template.fields.some((f) => f.name === "result" && f.source === "computed")
+      ? "result"
+      : null);
+  const limitField = limitFieldName
+    ? template.fields.find(
+        (f) => f.name === limitFieldName && f.source === "computed",
+      ) ?? null
+    : null;
+
+  const limitLowerText = row.values?.limitLower ?? "";
+  const limitUpperText = row.values?.limitUpper ?? "";
+  const lowerLimit = parseLimit(limitLowerText);
+  const upperLimit = parseLimit(limitUpperText);
+  const limitsInvalid =
+    lowerLimit !== null && upperLimit !== null && lowerLimit > upperLimit;
+  const limitsEntered = lowerLimit !== null || upperLimit !== null;
+
+  const rowVerdicts: LimitVerdict[] = React.useMemo(() => {
+    if (!limitField || !showCalculatedResults) return [];
+    if (limitField.group) {
+      return (computed.groupValues[limitField.group] || []).map((r) =>
+        evaluateLimit(r?.[limitField.name], lowerLimit, upperLimit),
+      );
+    }
+    return [evaluateLimit(computed.values[limitField.name], lowerLimit, upperLimit)];
+  }, [limitField, showCalculatedResults, computed, lowerLimit, upperLimit]);
+
+  // Overall: any FAIL fails the calculation. PASS only if every row passes.
+  const overallVerdict: LimitVerdict =
+    rowVerdicts.includes("fail")
+      ? "fail"
+      : rowVerdicts.length > 0 && rowVerdicts.every((v) => v === "pass")
+        ? "pass"
+        : "none";
+
   return (
     <div className="p-6 rounded-xl border border-emerald-200/60 bg-white/70">
       <div className="flex items-center justify-between mb-4">
@@ -206,6 +293,56 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
         </div>
       )}
 
+      {limitField && (
+        <div className="mb-6 p-4 rounded-lg border border-gray-200 bg-gray-50/60">
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Lower Limit{limitField.unit ? ` (${limitField.unit})` : ""}
+              </label>
+              <input
+                type="number"
+                value={limitLowerText}
+                disabled={disabled}
+                onChange={(e) => onFieldChange("limitLower", e.target.value)}
+                className="w-36 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Upper Limit{limitField.unit ? ` (${limitField.unit})` : ""}
+              </label>
+              <input
+                type="number"
+                value={limitUpperText}
+                disabled={disabled}
+                onChange={(e) => onFieldChange("limitUpper", e.target.value)}
+                className="w-36 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
+              />
+            </div>
+            <div className="pb-1.5 text-sm text-gray-600">
+              Checked against: <span className="font-medium">{limitField.label}</span>
+            </div>
+            {showCalculatedResults && limitsEntered && !limitsInvalid && (
+              <div className="pb-1 flex items-center gap-2">
+                <span className="text-xs text-gray-500">Overall</span>
+                <VerdictBadge verdict={overallVerdict} />
+              </div>
+            )}
+          </div>
+          {limitsInvalid && (
+            <p className="mt-2 text-xs text-red-600">
+              Lower limit is greater than the upper limit. Pass/Fail is not shown until this is corrected.
+            </p>
+          )}
+          {!limitsEntered && (
+            <p className="mt-2 text-xs text-gray-500">
+              Enter a lower and/or upper limit to see Pass/Fail after calculating. Limits are inclusive.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Top-level fields (inputs and computed), e.g. molarity, LOD, avgFactor, %RSD */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         {topLevelFields.map((field) => {
@@ -234,6 +371,12 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                     : "bg-white border-gray-300"
                 }`}
               />
+              {limitField && !limitField.group && field.name === limitField.name &&
+                limitsEntered && !limitsInvalid && showCalculatedResults && (
+                  <div className="mt-1">
+                    <VerdictBadge verdict={rowVerdicts[0] ?? "none"} />
+                  </div>
+                )}
             </div>
           );
         })}
@@ -257,6 +400,11 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                       {f.label}{f.unit ? ` (${f.unit})` : ""}
                     </th>
                   ))}
+                  {limitField?.group === group.name && limitsEntered && !limitsInvalid && (
+                    <th className="text-left text-xs font-medium text-gray-500 pb-2 pr-3 whitespace-nowrap">
+                      Limit Check
+                    </th>
+                  )}
                   {group.repeat === "dynamic" && !disabled && (
                     <th className="pb-2" />
                   )}
@@ -294,6 +442,13 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                         </td>
                       );
                     })}
+                    {limitField?.group === group.name && limitsEntered && !limitsInvalid && (
+                      <td className="pr-3 pb-2">
+                        <VerdictBadge
+                          verdict={showCalculatedResults ? rowVerdicts[rowIndex] ?? "none" : "none"}
+                        />
+                      </td>
+                    )}
                     {group.repeat === "dynamic" && !disabled && (
                       <td className="pb-2">
                         <button
