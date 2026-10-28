@@ -8,6 +8,11 @@ import type { Chemical } from "../preparation_models/Chemical";
 import type { Standard } from "../preparation_models/Standard";
 import type { ParameterDetail } from "../models/ParameterDetail";
 import companyLogo from "../assets/Logo.png";
+import {
+  buildGenericPrintModel,
+  resolveRecipe,
+} from "../preparation_models/drugs/genericPrintModel";
+import { useGenericCalculationTemplates } from "../hooks/useGenericCalculationTemplates";
 
 
 // ── PDF page-by-page renderer using PDF.js ───────────────────────────────────
@@ -279,6 +284,8 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
   // includeAuditTrail = false, // Audit trail removed
 }) => {
   const [printHeaderLogoSvgUrl, setPrintHeaderLogoSvgUrl] = useState<string>("");
+  // Recipes for generic (SQL-defined) calculations, used to print them.
+  const { templates: genericTemplates } = useGenericCalculationTemplates();
 
   /*
    * A data-URL SVG cannot reliably fetch a second, external image while the
@@ -3739,6 +3746,35 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
                     {param.calculations.map((calc: any, idx: number) => {
                       const calcData = safeJSONParse(calc.data, {});
                       const calcDisplayData = getCalculationDisplayData(calcData);
+                      // Generic (SQL-recipe) calculations are printed from their recipe,
+                      // not through the flat key/value table used by the older types.
+                      const genericTemplateId: string =
+                        calcData?.templateId ||
+                        (Object.values(genericTemplates || {}).some(
+                          (t: any) => t.templateId === calc.calculationType,
+                        )
+                          ? calc.calculationType
+                          : "");
+                      const genericModel = genericTemplateId
+                        ? buildGenericPrintModel(
+                            resolveRecipe(
+                              genericTemplateId,
+                              [
+                                calc?.recipe_json,
+                                calc?.recipeJson,
+                                calc?.recipe,
+                                calc?.template?.recipe_json,
+                                calc?.template?.recipeJson,
+                                calc?.calculationTemplate?.recipe_json,
+                                calc?.calculationTemplate?.recipeJson,
+                                calcData?.recipe_json,
+                                calcData?.recipeJson,
+                              ],
+                              genericTemplates,
+                            ),
+                            { ...calcData, templateId: genericTemplateId },
+                          )
+                        : null;
                       const calculationFieldSources = getCalculationFieldSources(calc, calcData);
                       const calculationComputedOutputs = getCalculationComputedOutputFields(calc, calcData);
                       const hasCalculationFieldSources = calculationFieldSources.size > 0;
@@ -3760,8 +3796,77 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
                               </p>
                             </div>
 
+                            {/* Generic (recipe-driven) calculation: top-level values, one table per group, limit check */}
+                            {genericModel && (
+                              <div>
+                                {(genericModel.top.length > 0 || genericModel.limit) && (
+                                  <table className="w-full text-sm mb-3">
+                                    <tbody>
+                                      {genericModel.top.map((row, rowIdx) => (
+                                        <tr key={rowIdx} className="border-b border-black last:border-b-0">
+                                          <td className="w-2/5 px-3 py-2 font-bold bg-gray-100 border-r border-black">
+                                            {row.label}
+                                          </td>
+                                          <td className="px-3 py-2">{row.value}</td>
+                                        </tr>
+                                      ))}
+                                      {genericModel.limit && (
+                                        <tr className="border-b border-black last:border-b-0">
+                                          <td className="w-2/5 px-3 py-2 font-bold bg-gray-100 border-r border-black">
+                                            Acceptance Limit
+                                          </td>
+                                          <td className="px-3 py-2">{genericModel.limit.display}</td>
+                                        </tr>
+                                      )}
+                                      {genericModel.limit?.verdict && (
+                                        <tr className="border-b border-black last:border-b-0">
+                                          <td className="w-2/5 px-3 py-2 font-bold bg-gray-100 border-r border-black">
+                                            Result vs Limit
+                                          </td>
+                                          <td className="px-3 py-2 font-bold">{genericModel.limit.verdict}</td>
+                                        </tr>
+                                      )}
+                                    </tbody>
+                                  </table>
+                                )}
+                                {genericModel.tables.map((table) => (
+                                  <div key={table.name} className="section-container mb-3">
+                                    <p className="font-bold text-xs mb-1">{table.label}</p>
+                                    <table
+                                      className="w-full border border-black border-collapse"
+                                      style={{ fontSize: table.headers.length > 8 ? "9px" : "11px" }}
+                                    >
+                                      <thead>
+                                        <tr>
+                                          {table.headers.map((header, headerIdx) => (
+                                            <th
+                                              key={headerIdx}
+                                              className="px-2 py-1 text-left font-bold bg-gray-100 border border-black"
+                                            >
+                                              {header}
+                                            </th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {table.rows.map((cells, cellRowIdx) => (
+                                          <tr key={cellRowIdx}>
+                                            {cells.map((cell, cellIdx) => (
+                                              <td key={cellIdx} className="px-2 py-1 border border-black">
+                                                {cell}
+                                              </td>
+                                            ))}
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
                             {/* Calculation Details Table — hidden for dissolution_profile (all shown in derivation) */}
-                            {!isDissoProfileCalc && (
+                            {!genericModel && !isDissoProfileCalc && (
                               <div>
                                 <table className="w-full text-sm">
                                   <tbody>
@@ -3921,12 +4026,14 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
                           </div>
 
                           {/* Mathematical Derivation Section */}
-                          <div className="mt-3">
-                            {renderCalculationDerivation(
-                              calcData,
-                              calc.calculationType,
-                            )}
-                          </div>
+                          {!genericModel && (
+                            <div className="mt-3">
+                              {renderCalculationDerivation(
+                                calcData,
+                                calc.calculationType,
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

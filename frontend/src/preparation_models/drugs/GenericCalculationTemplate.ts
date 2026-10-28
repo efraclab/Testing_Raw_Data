@@ -32,6 +32,14 @@ export interface GenericCalculationField {
    */
   group?: string;
   unit?: string;
+  /**
+   * Optional override for the printed report. true = always print this
+   * computed field, false = never print it. When omitted, the report decides:
+   * inputs and computed columns inside group tables always print, top-level
+   * computed fields print only if they are final outputs or statistics
+   * (AVERAGE / STDEV / SUM) rather than intermediate working.
+   */
+  printInReport?: boolean;
 }
 
 export interface GenericCalculationGroup {

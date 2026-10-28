@@ -52,9 +52,11 @@ const truncateDisplayTo4Decimals = (
 
 type LimitVerdict = "pass" | "fail" | "none";
 
-const parseLimit = (value: string | null | undefined): number | null => {
-  if (value === null || value === undefined || value.trim() === "") return null;
-  const n = Number(value);
+const parseLimit = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (text === "") return null;
+  const n = Number(text);
   return Number.isFinite(n) ? n : null;
 };
 
@@ -304,7 +306,12 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                 type="number"
                 value={limitLowerText}
                 disabled={disabled}
-                onChange={(e) => onFieldChange("limitLower", e.target.value)}
+                onChange={(e) => {
+                  onFieldChange("limitLower", e.target.value);
+                  // Remember which field the limits apply to, so the printed
+                  // report labels it "Result" and checks the right value.
+                  onFieldChange("limitFieldName", limitField.name);
+                }}
                 className="w-36 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
               />
             </div>
@@ -316,7 +323,12 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                 type="number"
                 value={limitUpperText}
                 disabled={disabled}
-                onChange={(e) => onFieldChange("limitUpper", e.target.value)}
+                onChange={(e) => {
+                  onFieldChange("limitUpper", e.target.value);
+                  // Remember which field the limits apply to, so the printed
+                  // report labels it "Result" and checks the right value.
+                  onFieldChange("limitFieldName", limitField.name);
+                }}
                 className="w-36 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
               />
             </div>
