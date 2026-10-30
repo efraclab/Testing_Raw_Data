@@ -3821,7 +3821,7 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
                                       {genericModel.limit?.verdict && (
                                         <tr className="border-b border-black last:border-b-0">
                                           <td className="w-2/5 px-3 py-2 font-bold bg-gray-100 border-r border-black">
-                                            Result vs Limit
+                                            {genericModel.limit.label} vs Limit
                                           </td>
                                           <td className="px-3 py-2 font-bold">{genericModel.limit.verdict}</td>
                                         </tr>

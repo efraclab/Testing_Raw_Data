@@ -17,6 +17,8 @@
 //   CORREL(group.x, group.y)
 //   SLOPE(group.y, group.x) -> Excel-style linear-regression slope
 //   INTERCEPT(group.y, group.x) -> Excel-style linear-regression intercept
+//   A series may join several groups with "+", read in the order written, e.g.
+//   SLOPE(stock.logArea + linearity.logArea, stock.lnX + linearity.lnX)
 //   FIRST(group.field) -> first non-empty numeric value from another group
 //
 // Existing Titration behaviour is intentionally preserved.
@@ -35,11 +37,18 @@ import type {
 const SINGLE_AGGREGATE_PATTERN =
   /^(AVERAGE|STDEV|SUM)\(([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\)$/i;
 
-const CORREL_PATTERN =
-  /^CORREL\(\s*([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\s*,\s*([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\s*\)$/i;
+// One series = group.field, optionally joined with "+" to more group.field parts.
+const SERIES = "[A-Za-z0-9_]+\\.[A-Za-z0-9_]+(?:\\s*\\+\\s*[A-Za-z0-9_]+\\.[A-Za-z0-9_]+)*";
 
-const REGRESSION_PATTERN =
-  /^(SLOPE|INTERCEPT)\(\s*([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\s*,\s*([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\s*\)$/i;
+const CORREL_PATTERN = new RegExp(
+  `^CORREL\\(\\s*(${SERIES})\\s*,\\s*(${SERIES})\\s*\\)$`,
+  "i",
+);
+
+const REGRESSION_PATTERN = new RegExp(
+  `^(SLOPE|INTERCEPT)\\(\\s*(${SERIES})\\s*,\\s*(${SERIES})\\s*\\)$`,
+  "i",
+);
 
 const FIRST_PATTERN =
   /FIRST\(\s*([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\s*\)/gi;
@@ -307,25 +316,41 @@ function computeSingleAggregate(
   }
 }
 
+/**
+ * Reads one series: "group.field" or several joined with "+".
+ * Values are read group by group, row by row, in the order written, so a
+ * single-row group can be placed ahead of a table (e.g. a stock solution
+ * followed by its dilutions) and the result behaves like one column.
+ */
+function readSeries(
+  spec: string,
+  groupValues: Record<string, Record<string, string | null>[]>,
+): (number | null)[] {
+  const out: (number | null)[] = [];
+  for (const part of spec.split("+")) {
+    const [groupName, fieldName] = part.trim().split(".");
+    for (const row of groupValues[groupName] || []) {
+      out.push(toNumber(row?.[fieldName]));
+    }
+  }
+  return out;
+}
+
 function computeCorrelation(
-  groupNameX: string,
-  fieldNameX: string,
-  groupNameY: string,
-  fieldNameY: string,
+  seriesX: string,
+  seriesY: string,
   groupValues: Record<string, Record<string, string | null>[]>,
 ): number | null {
-  // Betadex uses values from the same linearity table. Supporting two group
-  // names costs nothing and keeps the recipe format reusable.
-  const rowsX = groupValues[groupNameX] || [];
-  const rowsY = groupValues[groupNameY] || [];
+  const rowsX = readSeries(seriesX, groupValues);
+  const rowsY = readSeries(seriesY, groupValues);
 
   const pairCount = Math.min(rowsX.length, rowsY.length);
   const xs: number[] = [];
   const ys: number[] = [];
 
   for (let i = 0; i < pairCount; i++) {
-    const x = toNumber(rowsX[i]?.[fieldNameX]);
-    const y = toNumber(rowsY[i]?.[fieldNameY]);
+    const x = rowsX[i];
+    const y = rowsY[i];
 
     // Excel CORREL requires paired observations. Skip an incomplete pair.
     if (x === null || y === null) continue;
@@ -340,22 +365,20 @@ function computeCorrelation(
 
 function computeRegression(
   fn: string,
-  groupNameY: string,
-  fieldNameY: string,
-  groupNameX: string,
-  fieldNameX: string,
+  seriesY: string,
+  seriesX: string,
   groupValues: Record<string, Record<string, string | null>[]>,
 ): number | null {
-  const rowsY = groupValues[groupNameY] || [];
-  const rowsX = groupValues[groupNameX] || [];
+  const rowsY = readSeries(seriesY, groupValues);
+  const rowsX = readSeries(seriesX, groupValues);
 
   const pairCount = Math.min(rowsY.length, rowsX.length);
   const ys: number[] = [];
   const xs: number[] = [];
 
   for (let i = 0; i < pairCount; i++) {
-    const y = toNumber(rowsY[i]?.[fieldNameY]);
-    const x = toNumber(rowsX[i]?.[fieldNameX]);
+    const y = rowsY[i];
+    const x = rowsX[i];
 
     if (x === null || y === null) continue;
 
@@ -444,15 +467,9 @@ function computeOnce(
     const correlationMatch = formula.match(CORREL_PATTERN);
 
     if (correlationMatch && !field.group) {
-      const [, groupX, fieldX, groupY, fieldY] = correlationMatch;
+      const [, seriesX, seriesY] = correlationMatch;
 
-      const result = computeCorrelation(
-        groupX,
-        fieldX,
-        groupY,
-        fieldY,
-        groupValues,
-      );
+      const result = computeCorrelation(seriesX, seriesY, groupValues);
 
       if (result !== null) {
         madeProgress =
@@ -468,16 +485,9 @@ function computeOnce(
     const regressionMatch = formula.match(REGRESSION_PATTERN);
 
     if (regressionMatch && !field.group) {
-      const [, fn, groupY, fieldY, groupX, fieldX] = regressionMatch;
+      const [, fn, seriesY, seriesX] = regressionMatch;
 
-      const result = computeRegression(
-        fn,
-        groupY,
-        fieldY,
-        groupX,
-        fieldX,
-        groupValues,
-      );
+      const result = computeRegression(fn, seriesY, seriesX, groupValues);
 
       if (result !== null) {
         madeProgress =

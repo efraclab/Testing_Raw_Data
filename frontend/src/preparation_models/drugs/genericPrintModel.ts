@@ -28,6 +28,8 @@ export interface GenericPrintTable {
   rows: string[][];
 }
 export interface GenericPrintLimit {
+  /** Name of the checked field as printed, e.g. "Result" or "Coefficient of Correlation (R)". */
+  label: string;
   display: string;
   verdict: "PASS" | "FAIL" | null;
 }
@@ -199,10 +201,23 @@ export function buildGenericPrintModel(
     (typeof savedValues.limitFieldName === "string" && savedValues.limitFieldName) ||
     recipe.limitField ||
     null;
+  // Only result-like names print as "Result". A field the analyst chose for the
+  // limits (for example a correlation coefficient) keeps its own name.
   const isResultField = (f: GenericCalculationField) =>
-    f.source === "computed" && (f.name === designated || /^result/i.test(f.name));
+    f.source === "computed" && /^result/i.test(f.name);
 
-  const visible = getVisibleFields(recipe, isResultField);
+  // The field the limits apply to prints like a result (4 decimals, truncated)
+  // so the printed value always agrees with the PASS / FAIL beside it.
+  const printsAsResult = (f: GenericCalculationField) =>
+    isResultField(f) || (f.source === "computed" && f.name === designated);
+
+  // Every calculated number prints as the calculation screen shows it
+  // (4 decimals, truncated), so a printed value never differs from what the
+  // analyst and reviewer saw. Inputs print exactly as entered.
+  const isCalculatedNumber = (f: GenericCalculationField) =>
+    f.source === "computed" && f.type !== "text";
+
+  const visible = getVisibleFields(recipe, printsAsResult);
   const topFields = recipe.fields.filter((f) => !f.group && visible.has(f));
 
   // Within one table (or the top level) several result-like fields must stay
@@ -223,7 +238,9 @@ export function buildGenericPrintModel(
     const resultRow = isResultField(f);
     top.push({
       label: resultRow ? resultLabelFor(f, topFields) : overrides[f.name] || prettifyKey(f.name),
-      value: resultRow ? `${formatResult(v)}${unitSuffix(f)}` : String(v),
+      value: isCalculatedNumber(f)
+        ? `${formatResult(v)}${printsAsResult(f) ? unitSuffix(f) : ""}`
+        : String(v),
     });
   }
 
@@ -240,7 +257,7 @@ export function buildGenericPrintModel(
       const cells = cols.map((c) => {
         const v = cellOf(group.name, i, c.name);
         if (isEmpty(v)) return "";
-        return isResultField(c) ? formatResult(v) : String(v);
+        return isCalculatedNumber(c) ? formatResult(v) : String(v);
       });
       if (cells.some((c) => c !== "")) rows.push(cells);
     }
@@ -260,7 +277,10 @@ export function buildGenericPrintModel(
             return needsUnit ? `${base} (${c.unit})` : base;
           }
           const label = c.label || prettifyKey(c.name);
-          const labelHasUnit = /\([^)]*\)\s*$/.test(label);
+          // Don't repeat a unit the label already shows, e.g. "% Content" + "%".
+          const labelHasUnit =
+            /\([^)]*\)\s*$/.test(label) ||
+            (!!c.unit && label.toLowerCase().includes(c.unit.toLowerCase()));
           return c.unit && !labelHasUnit ? `${label} (${c.unit})` : label;
         })
         .filter((_, ci) => keep[ci]),
@@ -273,22 +293,27 @@ export function buildGenericPrintModel(
   const lower = toLimit(savedValues.limitLower);
   const upper = toLimit(savedValues.limitUpper);
   if (lower !== null || upper !== null) {
-    const display =
-      lower !== null && upper !== null
-        ? `${lower} ≤ Result ≤ ${upper}`
-        : lower !== null
-          ? `${lower} ≤ Result`
-          : `Result ≤ ${upper}`;
-
-    let verdict: "PASS" | "FAIL" | null = null;
-    const invalid = lower !== null && upper !== null && lower > upper;
-
-    // Which field is checked: the saved one, else the only result-like field.
+    // Which field is checked: the saved one, else the recipe's, else the only result-like field.
     const resultFields = recipe.fields.filter(isResultField);
     const checkedName =
       designated ||
       (new Set(resultFields.map((f) => f.name)).size === 1 ? resultFields[0].name : null);
-    const checkedField = recipe.fields.find((f) => f.name === checkedName);
+    const checkedField = recipe.fields.find((f) => f.name === checkedName && f.source === "computed");
+    const checkedLabel = checkedField
+      ? isResultField(checkedField)
+        ? "Result"
+        : (checkedField.label || prettifyKey(checkedField.name)).replace(/\s*\([^)]*\)\s*$/, "") || prettifyKey(checkedField.name)
+      : "Result";
+
+    const display =
+      lower !== null && upper !== null
+        ? `${lower} ≤ ${checkedLabel} ≤ ${upper}`
+        : lower !== null
+          ? `${lower} ≤ ${checkedLabel}`
+          : `${checkedLabel} ≤ ${upper}`;
+
+    let verdict: "PASS" | "FAIL" | null = null;
+    const invalid = lower !== null && upper !== null && lower > upper;
 
     if (!invalid && checkedField) {
       const raw: unknown[] = checkedField.group
@@ -304,7 +329,7 @@ export function buildGenericPrintModel(
         verdict = failed ? "FAIL" : "PASS";
       }
     }
-    limit = { display, verdict };
+    limit = { label: checkedLabel, display, verdict };
   }
 
   return { top, tables, limit };

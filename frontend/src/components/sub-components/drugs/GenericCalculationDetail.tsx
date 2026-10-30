@@ -209,15 +209,41 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
   // ---- Acceptance limits ------------------------------------------------
   // Limits are stored in row.values (keys: limitLower / limitUpper), so they
   // are saved and restored with the calculation with no other plumbing.
+  // Limits are available on every template that has a calculated value.
+  // Candidates = results, plus final outputs (computed fields that no other
+  // computed formula builds on). The analyst can pick which one the limits
+  // apply to; the default is the recipe's limitField, else "result", else the
+  // first result-like field, else the last final output in the recipe.
+  const limitCandidates = React.useMemo(() => {
+    const computedFields = template.fields.filter(
+      (f) => f.source === "computed" && !!f.formula,
+    );
+    const usedByOthers = (name: string) => {
+      // Field names are plain identifiers, so no escaping is needed.
+      const re = new RegExp(`\\b${name}\\b`);
+      return computedFields.some((o) => o.name !== name && re.test(o.formula as string));
+    };
+    return computedFields.filter(
+      (f) => /^result/i.test(f.name) || f.name === template.limitField || !usedByOthers(f.name),
+    );
+  }, [template]);
+
+  const defaultLimitFieldName: string | null = React.useMemo(() => {
+    const names = limitCandidates.map((f) => f.name);
+    if (template.limitField && names.includes(template.limitField)) return template.limitField;
+    if (names.includes("result")) return "result";
+    const resultLike = limitCandidates.find((f) => /^result/i.test(f.name));
+    if (resultLike) return resultLike.name;
+    return limitCandidates.length > 0 ? limitCandidates[limitCandidates.length - 1].name : null;
+  }, [limitCandidates, template.limitField]);
+
+  const savedLimitFieldName = row.values?.limitFieldName ?? null;
   const limitFieldName =
-    template.limitField ??
-    (template.fields.some((f) => f.name === "result" && f.source === "computed")
-      ? "result"
-      : null);
+    savedLimitFieldName && limitCandidates.some((f) => f.name === savedLimitFieldName)
+      ? savedLimitFieldName
+      : defaultLimitFieldName;
   const limitField = limitFieldName
-    ? template.fields.find(
-        (f) => f.name === limitFieldName && f.source === "computed",
-      ) ?? null
+    ? limitCandidates.find((f) => f.name === limitFieldName) ?? null
     : null;
 
   const limitLowerText = row.values?.limitLower ?? "";
@@ -352,8 +378,30 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
                 className="w-36 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
               />
             </div>
-            <div className="pb-1.5 text-sm text-gray-600">
-              Checked against: <span className="font-medium">{limitField.label}</span>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Limits apply to
+              </label>
+              {limitCandidates.length > 1 ? (
+                <select
+                  value={limitField.name}
+                  disabled={disabled}
+                  onChange={(e) => onFieldChange("limitFieldName", e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm"
+                >
+                  {limitCandidates.map((f) => (
+                    <option key={f.name} value={f.name}>
+                      {f.label}
+                      {f.unit ? ` (${f.unit})` : ""}
+                      {f.group ? ` - ${template.groups.find((g) => g.name === f.group)?.label ?? f.group}` : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="inline-block py-1.5 text-sm font-medium text-gray-700">
+                  {limitField.label}
+                </span>
+              )}
             </div>
             {showCalculatedResults && limitsEntered && !limitsInvalid && (
               <div className="pb-1 flex items-center gap-2">
