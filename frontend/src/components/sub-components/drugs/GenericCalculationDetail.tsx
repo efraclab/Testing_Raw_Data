@@ -238,6 +238,26 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
     return [evaluateLimit(computed.values[limitField.name], lowerLimit, upperLimit)];
   }, [limitField, showCalculatedResults, computed, lowerLimit, upperLimit]);
 
+  // Top-level inputs the checked result formula uses directly but that are still
+  // empty. The engine leaves a result blank when an input is missing, so name
+  // the missing input instead of leaving the analyst with an unexplained blank.
+  const missingResultInputs: string[] = React.useMemo(() => {
+    if (!limitField?.formula) return [];
+    const referenced = new Set(limitField.formula.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []);
+    return template.fields
+      .filter(
+        (f) =>
+          !f.group &&
+          f.source === "input" &&
+          f.type === "number" &&
+          referenced.has(f.name) &&
+          (row.values?.[f.name] === null ||
+            row.values?.[f.name] === undefined ||
+            String(row.values?.[f.name]).trim() === ""),
+      )
+      .map((f) => f.label);
+  }, [limitField, template.fields, row.values]);
+
   // Overall: any FAIL fails the calculation. PASS only if every row passes.
   const overallVerdict: LimitVerdict =
     rowVerdicts.includes("fail")
@@ -353,6 +373,12 @@ const GenericCalculationDetail: React.FC<GenericCalculationDetailProps> = ({
             </p>
           )}
         </div>
+      )}
+
+      {showCalculatedResults && missingResultInputs.length > 0 && (
+        <p className="mb-4 text-xs text-red-600">
+          Result cannot be calculated until this is entered: {missingResultInputs.join(", ")}.
+        </p>
       )}
 
       {/* Top-level fields (inputs and computed), e.g. molarity, LOD, avgFactor, %RSD */}
