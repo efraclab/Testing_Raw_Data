@@ -42,6 +42,7 @@ export interface GenericPrintModel {
 // Labels that must differ from the automatic "camelCase -> Title Case" label.
 const TOP_LEVEL_LABEL_OVERRIDES: Record<string, Record<string, string>> = {
   logarithmic_calculation_4_point: { unknownReading: "Sample Reading" },
+  logarithmic_calculation_5_point: { unknownReading: "Sample Reading" },
 };
 
 const isEmpty = (v: unknown) => v === null || v === undefined || v === "";

@@ -3890,11 +3890,13 @@ const DrugPrintReport: React.FC<PrintReportProps> = ({
                                           }
                                         } else if (
                                           calc.calculationType?.toLowerCase().includes("logarithmic_calculation_4_point") ||
-                                          calcData?.templateId === "logarithmic_calculation_4_point"
+                                          calcData?.templateId === "logarithmic_calculation_4_point" ||
+                                          calc.calculationType?.toLowerCase().includes("logarithmic_calculation_5_point") ||
+                                          calcData?.templateId === "logarithmic_calculation_5_point"
                                         ) {
                                           // Safe fallback for older API responses that don't include
-                                          // recipe metadata for this template.
-                                          const finalLogOutputs = new Set(["standard1", "reading1", "standard2", "reading2", "standard3", "reading3", "standard4", "reading4", "unknownReading", "sampleWeight", "resultTimes100", "resultTimes100Div10000"]);
+                                          // recipe metadata for these templates (4-point and 5-point).
+                                          const finalLogOutputs = new Set(["standard1", "reading1", "standard2", "reading2", "standard3", "reading3", "standard4", "reading4", "standard5", "reading5", "unknownReading", "sampleWeight", "dilutionVolume", "resultPpm", "resultTimes100", "resultTimes100Div10000"]);
                                           if (!finalLogOutputs.has(key)) return null;
                                         }
 
