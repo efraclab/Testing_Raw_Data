@@ -172,11 +172,6 @@ export const PREPARATION_GROUPS = {
     label: "Logarithmic Calculation - 4 Point",
     color: "emerald",
   },
-  logarithmicCalculation5Point: {
-    id: "logarithmicCalculation5Point",
-    label: "Logarithmic Calculation - 5 Point",
-    color: "emerald",
-  },
   ndmaValidationBatchAnalysis: {
     id: "ndmaValidationBatchAnalysis",
     label: "NDMA Validation - Batch Analysis",

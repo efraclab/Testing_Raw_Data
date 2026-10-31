@@ -1983,18 +1983,6 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
                   break;
                 }
 
-                case "logarithmic_calculation_5_point": {
-                  restoredCalculations.generic.push({
-                    ...parsedData,
-                    id: baseId + 10031,
-                    label: parsedData.label || calc.label,
-                    templateId:
-                      parsedData.templateId ||
-                      "logarithmic_calculation_5_point",
-                  });
-                  break;
-                }
-
                 case "ndma_validation_batch_analysis":
                 case "povidone_limit_of_aldehyde":
                 case "prilocaine_assay":
@@ -2490,18 +2478,6 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
             )
           ) {
             activeGroups.push("logarithmicCalculation4Point");
-          }
-
-          // Generic Logarithmic Calculation - 5 Point
-          if (
-            param.calculations &&
-            Array.isArray(param.calculations) &&
-            param.calculations.some(
-              (c: any) =>
-                c.calculationType === "logarithmic_calculation_5_point",
-            )
-          ) {
-            activeGroups.push("logarithmicCalculation5Point");
           }
 
           // Generic NDMA Validation - Batch Analysis
