@@ -20,6 +20,7 @@ const GENERIC_GROUP_TEMPLATE_IDS: Record<string, string> = {
   lipoidsAssay: "lipoids_assay",
   lipoidsImpurity: "lipoids_impurity",
   logarithmicCalculation4Point: "logarithmic_calculation_4_point",
+  logarithmicCalculation5Point: "logarithmic_calculation_5_point",
   ndmaValidationBatchAnalysis: "ndma_validation_batch_analysis",
   povidoneLimitOfAldehyde: "povidone_limit_of_aldehyde",
   prilocaineAssay: "prilocaine_assay",
@@ -392,6 +393,14 @@ export function useDrugPreparationGroupToggle(ctx: any) {
             [parameterId]: (p[parameterId] || []).filter(
               (calc: any) =>
                 calc?.templateId !== "logarithmic_calculation_4_point",
+            ),
+          }));
+        } else if (group.id === "logarithmicCalculation5Point") {
+          setCalculationsGenericPerParam((p: any) => ({
+            ...p,
+            [parameterId]: (p[parameterId] || []).filter(
+              (calc: any) =>
+                calc?.templateId !== "logarithmic_calculation_5_point",
             ),
           }));
         } else if (group.id === "ndmaValidationBatchAnalysis") {
@@ -781,6 +790,14 @@ export function useDrugPreparationGroupToggle(ctx: any) {
             [parameterId]: (p[parameterId] || []).filter(
               (calc: any) =>
                 calc?.templateId !== "logarithmic_calculation_4_point",
+            ),
+          }));
+        } else if (oldGroupId === "logarithmicCalculation5Point") {
+          setCalculationsGenericPerParam((p: any) => ({
+            ...p,
+            [parameterId]: (p[parameterId] || []).filter(
+              (calc: any) =>
+                calc?.templateId !== "logarithmic_calculation_5_point",
             ),
           }));
         } else if (oldGroupId === "ndmaValidationBatchAnalysis") {
