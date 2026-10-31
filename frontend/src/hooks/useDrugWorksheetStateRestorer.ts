@@ -1,6 +1,17 @@
 import type { WorksheetDetail } from "../models/WorksheetDetail";
 import type { AttachedFile } from "../models/AttachedFile";
 
+// TODO: replace these placeholders with imports of the real model types.
+type SystemSuitability = any;
+type WorksheetInstrument = any;
+type WorksheetChemical = any;
+type WorksheetStandard = any;
+type CalculationAssayFerrousFumarate = any;
+type CalculationDissoFerrousFumarate = any;
+type CalculationAssayHypromellose = any;
+type CalculationAssayNitrosamine = any;
+type CalculationRelatedSubstance = any;
+
 export function useDrugWorksheetStateRestorer(ctx: any) {
   const {
     setActivePreparationGroups,
@@ -156,7 +167,7 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
         );
 
         if (systemSuitabilityPreps.length > 0) {
-          setShowSystemSuitability((prev) => ({
+          setShowSystemSuitability((prev: any) => ({
             ...prev,
             [paramId]: true,
           }));
@@ -178,49 +189,49 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
               };
             });
 
-          setSystemSuitabilityPerParam((prev) => ({
+          setSystemSuitabilityPerParam((prev: any) => ({
             ...prev,
             [paramId]: restoredSuitability,
           }));
         }
 
         if (param.analyzedBy) {
-          setAnalyzedByPerParam((prev) => ({
+          setAnalyzedByPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.analyzedBy!,
           }));
         }
 
         if (param.analyzedByName) {
-          setAnalyzedByNamePerParam((prev) => ({
+          setAnalyzedByNamePerParam((prev: any) => ({
             ...prev,
             [paramId]: param.analyzedByName!,
           }));
         }
 
         if (param.analysisStartDate) {
-          setAnalysisStartDatePerParam((prev) => ({
+          setAnalysisStartDatePerParam((prev: any) => ({
             ...prev,
             [paramId]: param.analysisStartDate!,
           }));
         }
 
         if (param.analysisCompletionDate) {
-          setAnalysisCompletionDatePerParam((prev) => ({
+          setAnalysisCompletionDatePerParam((prev: any) => ({
             ...prev,
             [paramId]: param.analysisCompletionDate!,
           }));
         }
 
         if ((param as any).revisionStartDate) {
-          setRevisionStartDatePerParam((prev) => ({
+          setRevisionStartDatePerParam((prev: any) => ({
             ...prev,
             [paramId]: (param as any).revisionStartDate,
           }));
         }
 
         if ((param as any).revisionCompletedDate) {
-          setRevisionCompletedDatePerParam((prev) => ({
+          setRevisionCompletedDatePerParam((prev: any) => ({
             ...prev,
             [paramId]: (param as any).revisionCompletedDate,
           }));
@@ -228,67 +239,67 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
 
         // Hydrate revisionStartedParams if status is already "Analysis Revision Started"
         if ((param.status || "").toLowerCase() === "analysis revision started") {
-          setRevisionStartedParams(prev => new Set([...prev, paramId]));
+          setRevisionStartedParams((prev: Set<number>) => new Set([...prev, paramId]));
         }
 
         if (param.status) {
-          setParameterStatusPerParam((prev) => ({
+          setParameterStatusPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.status!,
           }));
         }
 
         if (param.approvedByReviewer) {
-          setApprovedByPerParam((prev) => ({
+          setApprovedByPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.approvedByReviewer!,
           }));
         }
 
         if (param.approvedByReviewerName) {
-          setApprovedByNamePerParam((prev) => ({
+          setApprovedByNamePerParam((prev: any) => ({
             ...prev,
             [paramId]: param.approvedByReviewerName!,
           }));
         }
 
         if (param.approvedAtReviewer) {
-          setApprovedAtPerParam((prev) => ({
+          setApprovedAtPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.approvedAtReviewer!,
           }));
         }
 
         if (param.approvedByQA) {
-          setApprovedByQAPerParam((prev) => ({
+          setApprovedByQAPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.approvedByQA!,
           }));
         }
 
         if (param.approvedAtQA) {
-          setApprovedAtQAPerParam((prev) => ({
+          setApprovedAtQAPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.approvedAtQA!,
           }));
         }
 
         if (param.remarksByQA !== undefined) {
-          setRemarksQAPerParam((prev) => ({
+          setRemarksQAPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.remarksByQA ?? null,
           }));
         }
 
         if (param.remarksByReviewer !== undefined) {
-          setRemarksByReviewerPerParam((prev) => ({
+          setRemarksByReviewerPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.remarksByReviewer ?? null,
           }));
         }
 
         if (param.remarksByAnalyst !== undefined) {
-          setRemarksByAnalystPerParam((prev) => ({
+          setRemarksByAnalystPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.remarksByAnalyst ?? null,
           }));
@@ -297,23 +308,24 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
         const savedAdditionalInfo =
           param.additional_info ?? (param as any).additionalInfo;
         if (savedAdditionalInfo !== undefined) {
-          setAdditionalInfoPerParam((prev) => ({
+          setAdditionalInfoPerParam((prev: any) => ({
             ...prev,
             [paramId]: savedAdditionalInfo ?? "",
           }));
           if (savedAdditionalInfo || (param as any).showAdditionalInfo) {
-            setShowAdditionalInfo((prev) => ({ ...prev, [paramId]: true }));
+            setShowAdditionalInfo((prev: any) => ({ ...prev, [paramId]: true }));
           }
         }
 
-        const savedOtherInfo = param.otherInfo ?? (param as any).other_info;
+        const savedOtherInfo =
+          (param as any).otherInfo ?? (param as any).other_info;
         if (savedOtherInfo !== undefined) {
-          setOtherInfoPerParam((prev) => ({
+          setOtherInfoPerParam((prev: any) => ({
             ...prev,
             [paramId]: savedOtherInfo ?? "",
           }));
           if (savedOtherInfo || (param as any).showInternalStandardPreparation) {
-            setShowInternalStandardPreparation((prev) => ({
+            setShowInternalStandardPreparation((prev: any) => ({
               ...prev,
               [paramId]: true,
             }));
@@ -321,14 +333,14 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
         }
 
         if (param.preparationCompletedBy) {
-          setPreparationCompletedByPerParam((prev) => ({
+          setPreparationCompletedByPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.preparationCompletedBy!,
           }));
         }
 
         if (param.preparationCompletedAt) {
-          setPreparationCompletedAtPerParam((prev) => ({
+          setPreparationCompletedAtPerParam((prev: any) => ({
             ...prev,
             [paramId]: param.preparationCompletedAt!,
           }));
@@ -367,8 +379,14 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
               groupKeys["standardizedTitrationAssay"] = at;
             if (prepTypes.includes("dibasic_sodium_phosphate_assay"))
               groupKeys["dibasicSodiumPhosphateAssay"] = at;
+            if (
+              param.preparations.some(
+                (p: any) => p.preparationCategory === "blank",
+              )
+            )
+              groupKeys["blankPreparation"] = at;
             if (Object.keys(groupKeys).length > 0) {
-              setGroupPrepCompletedAtPerParam((prev) => ({
+              setGroupPrepCompletedAtPerParam((prev: any) => ({
                 ...prev,
                 [paramId]: groupKeys,
               }));
@@ -382,7 +400,7 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
         if (param.instruments && Array.isArray(param.instruments)) {
           const worksheetInstruments = param.instruments as WorksheetInstrument[];
           if (worksheetInstruments.length > 0) {
-            setAddedInstruments((prev) => ({
+            setAddedInstruments((prev: any) => ({
               ...prev,
               [paramId]: worksheetInstruments,
             }));
@@ -395,7 +413,7 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
         if (param.chemicals && Array.isArray(param.chemicals)) {
           const worksheetChemicals = param.chemicals as WorksheetChemical[];
           if (worksheetChemicals.length > 0) {
-            setAddedChemicals((prev) => ({
+            setAddedChemicals((prev: any) => ({
               ...prev,
               [paramId]: worksheetChemicals,
             }));
@@ -408,7 +426,7 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
         if (param.standards && Array.isArray(param.standards)) {
           const worksheetStandards = param.standards as WorksheetStandard[];
           if (worksheetStandards.length > 0) {
-            setAddedStandards((prev) => ({
+            setAddedStandards((prev: any) => ({
               ...prev,
               [paramId]: worksheetStandards,
             }));
@@ -419,7 +437,7 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
         // 2.5a: Column
         // ------------------------------------------------------------------------
         if ((param as any).columnId) {
-          setColumnsPerParam((prev) => ({
+          setColumnsPerParam((prev: any) => ({
             ...prev,
             [paramId]: (param as any).columnId,
           }));
@@ -435,11 +453,11 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
           const worksheetInternalStandards = (param as any)
             .internalStandards as WorksheetStandard[];
           if (worksheetInternalStandards.length > 0) {
-            setAddedInternalStandards((prev) => ({
+            setAddedInternalStandards((prev: any) => ({
               ...prev,
               [paramId]: worksheetInternalStandards,
             }));
-            setShowInternalStandardPreparation((prev) => ({
+            setShowInternalStandardPreparation((prev: any) => ({
               ...prev,
               [paramId]: true,
             }));
@@ -660,7 +678,7 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
               });
             } else if (prepCategory === "blank") {
               preparationCollections.blank.push({
-                id: newPrep.id,
+                id: String(newPrep.id),
                 label: prep.label || "Blank Preparation",
                 content: prep.content || "",
               });
@@ -684,42 +702,42 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
           });
 
           if (preparationCollections.assayStd.length > 0) {
-            setStandardPreparationAssayPerParam((prev) => ({
+            setStandardPreparationAssayPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.assayStd,
             }));
           }
 
           if (preparationCollections.rsStd.length > 0) {
-            setStandardPreparationResidualSolventPerParam((prev) => ({
+            setStandardPreparationResidualSolventPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.rsStd,
             }));
           }
 
           if (preparationCollections.dissoStd.length > 0) {
-            setStandardPreparationDissoPerParam((prev) => ({
+            setStandardPreparationDissoPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.dissoStd,
             }));
           }
 
           if (preparationCollections.ucStd.length > 0) {
-            setStandardPreparationUCPerParam((prev) => ({
+            setStandardPreparationUCPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.ucStd,
             }));
           }
 
           if (preparationCollections.hypromelloseStd.length > 0) {
-            setStandardPreparationHypromellosePerParam((prev) => ({
+            setStandardPreparationHypromellosePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.hypromelloseStd,
             }));
           }
 
           if (preparationCollections.nitrosamineStd.length > 0) {
-            setStandardPreparationNitrosaminePerParam((prev) => ({
+            setStandardPreparationNitrosaminePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.nitrosamineStd,
             }));
@@ -755,91 +773,91 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
 
           // Sample preparations
           if (preparationCollections.assaySpl.length > 0) {
-            setSamplePreparationPerParam((prev) => ({
+            setSamplePreparationPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.assaySpl,
             }));
           }
 
           if (preparationCollections.lodSpl.length > 0) {
-            setSamplePreparationLodPerParam((prev) => ({
+            setSamplePreparationLodPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.lodSpl,
             }));
           }
 
           if (preparationCollections.roiSpl.length > 0) {
-            setSamplePreparationROIPerParam((prev) => ({
+            setSamplePreparationROIPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.roiSpl,
             }));
           }
 
           if (preparationCollections.ashSpl.length > 0) {
-            setSamplePreparationSulphatedAshPerParam((prev) => ({
+            setSamplePreparationSulphatedAshPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.ashSpl,
             }));
           }
 
           if (preparationCollections.rsSpl.length > 0) {
-            setSamplePreparationRSPerParam((prev) => ({
+            setSamplePreparationRSPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.rsSpl,
             }));
           }
 
           if (preparationCollections.relatedSubstanceStd.length > 0) {
-            setStandardPreparationRelatedSubstancePerParam((prev) => ({
+            setStandardPreparationRelatedSubstancePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.relatedSubstanceStd,
             }));
           }
 
           if (preparationCollections.relatedSubstanceSpl.length > 0) {
-            setSamplePreparationRelatedSubstancePerParam((prev) => ({
+            setSamplePreparationRelatedSubstancePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.relatedSubstanceSpl,
             }));
           }
 
           if (preparationCollections.dissoSpl.length > 0) {
-            setSamplePreparationDissoPerParam((prev) => ({
+            setSamplePreparationDissoPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.dissoSpl,
             }));
           }
 
           if (preparationCollections.assayFerrousFumarateSpl.length > 0) {
-            setSamplePrepAssayFerrousFumaratePerParam((prev) => ({
+            setSamplePrepAssayFerrousFumaratePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.assayFerrousFumarateSpl,
             }));
           }
 
           if (preparationCollections.dissolutionFerrousFumarateSpl.length > 0) {
-            setSamplePrepDissoFerrousFumaratePerParam((prev) => ({
+            setSamplePrepDissoFerrousFumaratePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.dissolutionFerrousFumarateSpl,
             }));
           }
 
           if (preparationCollections.ucSpl.length > 0) {
-            setSamplePreparationUCPerParam((prev) => ({
+            setSamplePreparationUCPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.ucSpl,
             }));
           }
 
           if (preparationCollections.hypromelloseSpl.length > 0) {
-            setSamplePreparationHypromellosePerParam((prev) => ({
+            setSamplePreparationHypromellosePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.hypromelloseSpl,
             }));
           }
 
           if (preparationCollections.nitrosamineSpl.length > 0) {
-            setSamplePreparationNitrosaminePerParam((prev) => ({
+            setSamplePreparationNitrosaminePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.nitrosamineSpl,
             }));
@@ -875,40 +893,40 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
 
           // Special category preparations
           if (preparationCollections.dissoMedia.length > 0) {
-            setDissoMediaPerParam((prev) => ({
+            setDissoMediaPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.dissoMedia,
             }));
           }
 
           if (preparationCollections.dissoProfileStd.length > 0) {
-            setStandardPreparationDissoProfilePerParam((prev) => ({
+            setStandardPreparationDissoProfilePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.dissoProfileStd,
             }));
           }
 
           if (preparationCollections.dissoProfileSpl.length > 0) {
-            setSamplePreparationDissoProfilePerParam((prev) => ({
+            setSamplePreparationDissoProfilePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.dissoProfileSpl,
             }));
           }
 
           if (preparationCollections.dissoMediaProfile.length > 0) {
-            setDissoMediaProfilePerParam((prev) => ({
+            setDissoMediaProfilePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.dissoMediaProfile,
             }));
           }
 
           if (preparationCollections.mobilePhase.length > 0) {
-            setMobilePhasePerParam((prev) => ({
+            setMobilePhasePerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.mobilePhase,
             }));
             // Auto-enable the mobile phase toggle when data exists
-            setShowMobilePhasePreparation((prev) => ({
+            setShowMobilePhasePreparation((prev: any) => ({
               ...prev,
               [paramId]: true,
             }));
@@ -916,33 +934,30 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
 
           // Blank preparations
           if (preparationCollections.blank.length > 0) {
-            setBlankPreparationPerParam((prev) => ({
+            setBlankPreparationPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.blank,
             }));
-            // Auto-enable the blank preparation group when data exists
-            setActivePreparationGroups((prev) => ({
-              ...prev,
-              [paramId]: [...(prev[paramId] || []), "blankPreparation"],
-            }));
+            // NOTE: "blankPreparation" is added to activeGroups below, so it is
+            // not overwritten by the final setActivePreparationGroups call.
           }
 
           // Buffer preparations
           if (preparationCollections.bufferPrep.length > 0) {
-            setBufferPreparationPerParam((prev) => ({
+            setBufferPreparationPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.bufferPrep,
             }));
-            setShowBufferPreparation((prev) => ({ ...prev, [paramId]: true }));
+            setShowBufferPreparation((prev: any) => ({ ...prev, [paramId]: true }));
           }
 
           // Diluent preparations (blank-sheet style)
           if (preparationCollections.diluentPrep.length > 0) {
-            setDiluentPreparationsPerParam((prev) => ({
+            setDiluentPreparationsPerParam((prev: any) => ({
               ...prev,
               [paramId]: preparationCollections.diluentPrep,
             }));
-            setShowDiluentPreparation((prev) => ({ ...prev, [paramId]: true }));
+            setShowDiluentPreparation((prev: any) => ({ ...prev, [paramId]: true }));
           }
         }
 
@@ -2040,90 +2055,90 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
 
           // Set calculation state ONLY if arrays have items
           if (restoredCalculations.assay.length > 0) {
-            setCalculationsAssayPerParam((prev) => ({
+            setCalculationsAssayPerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.assay,
             }));
           }
 
           if (restoredCalculations.lod.length > 0) {
-            setCalculationsLodPerParam((prev) => ({
+            setCalculationsLodPerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.lod,
             }));
           }
 
           if (restoredCalculations.roi.length > 0) {
-            setCalculationsROIPerParam((prev) => ({
+            setCalculationsROIPerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.roi,
             }));
           }
 
           if (restoredCalculations.sulphatedAsh.length > 0) {
-            setCalculationsSulphatedAshPerParam((prev) => ({
+            setCalculationsSulphatedAshPerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.sulphatedAsh,
             }));
           }
 
           if (restoredCalculations.residualSolvent.length > 0) {
-            setCalculationsRSPerParam((prev) => ({
+            setCalculationsRSPerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.residualSolvent,
             }));
           }
 
           if (restoredCalculations.relatedSubstance.length > 0) {
-            setCalculationsRelatedSubstancePerParam((prev) => ({
+            setCalculationsRelatedSubstancePerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.relatedSubstance,
             }));
           }
 
           if (restoredCalculations.dissolution.length > 0) {
-            setCalculationsDissoPerParam((prev) => ({
+            setCalculationsDissoPerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.dissolution,
             }));
           }
 
           if (restoredCalculations.dissolutionProfile.length > 0) {
-            setCalculationsDissoProfilePerParam((prev) => ({
+            setCalculationsDissoProfilePerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.dissolutionProfile,
             }));
           }
 
           if (restoredCalculations.uniformityOfContent.length > 0) {
-            setCalculationsUCPerParam((prev) => ({
+            setCalculationsUCPerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.uniformityOfContent,
             }));
           }
 
           if (restoredCalculations.ferrousFumarate.length > 0) {
-            setCalculationsAssayFerrousFumaratePerParam((prev) => ({
+            setCalculationsAssayFerrousFumaratePerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.ferrousFumarate,
             }));
           }
 
           if (restoredCalculations.dissoFerrousFumarate.length > 0) {
-            setCalculationsDissoFerrousFumaratePerParam((prev) => ({
+            setCalculationsDissoFerrousFumaratePerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.dissoFerrousFumarate,
             }));
           }
 
           if (restoredCalculations.hypromellose.length > 0) {
-            setCalculationsAssayHypromellosePerParam((prev) => ({
+            setCalculationsAssayHypromellosePerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.hypromellose,
             }));
           }
           if (restoredCalculations.nitrosamine.length > 0) {
-            setCalculationsAssayNitrosaminePerParam((prev) => ({
+            setCalculationsAssayNitrosaminePerParam((prev: any) => ({
               ...prev,
               [paramId]: restoredCalculations.nitrosamine,
             }));
@@ -2213,6 +2228,15 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
             )
           ) {
             activeGroups.push("mobilePhase");
+          }
+
+          // Check for Blank preparations (based on preparationCategory)
+          if (
+            param.preparations.some(
+              (p: any) => p.preparationCategory === "blank",
+            )
+          ) {
+            activeGroups.push("blankPreparation");
           }
 
           // Check for Dissolution Media preparations (based on preparationCategory)
@@ -2610,7 +2634,7 @@ export function useDrugWorksheetStateRestorer(ctx: any) {
         }
 
         if (activeGroups.length > 0) {
-          setActivePreparationGroups((prev) => ({
+          setActivePreparationGroups((prev: any) => ({
             ...prev,
             [paramId]: activeGroups,
           }));
