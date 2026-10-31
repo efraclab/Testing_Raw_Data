@@ -134,6 +134,11 @@ export const DRUG_PREPARATION_GROUP_OPTIONS: DrugPreparationGroupOption[] = [
         color: "emerald",
       },
       {
+        id: "logarithmicCalculation5Point",
+        label: "Logarithmic Calculation - 5 Point",
+        color: "emerald",
+      },
+      {
         id: "ndmaValidationBatchAnalysis",
         label: "NDMA Validation - Batch Analysis",
         color: "emerald",

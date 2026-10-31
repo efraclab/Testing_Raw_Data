@@ -44,6 +44,7 @@ export const KNOWN_GENERIC_TEMPLATE_IDS = new Set<string>([
   "lipoids_assay",
   "lipoids_impurity",
   "logarithmic_calculation_4_point",
+  "logarithmic_calculation_5_point",
   "ndma_validation_batch_analysis",
   "povidone_limit_of_aldehyde",
   "prilocaine_assay",

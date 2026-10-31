@@ -268,6 +268,16 @@ const DrugPrimaryAnalysisGroupsCoordinator: React.FC<
           template?.templateId === "logarithmic_calculation_4_point",
       );
 
+  const logarithmicCalculation5PointTemplate = Array.isArray(genericTemplates)
+    ? genericTemplates.find(
+        (template: any) =>
+          template?.templateId === "logarithmic_calculation_5_point",
+      )
+    : Object.values(genericTemplates || {}).find(
+        (template: any) =>
+          template?.templateId === "logarithmic_calculation_5_point",
+      );
+
   const ndmaValidationBatchAnalysisTemplate = Array.isArray(genericTemplates)
     ? genericTemplates.find(
         (template: any) =>
@@ -1620,6 +1630,73 @@ const DrugPrimaryAnalysisGroupsCoordinator: React.FC<
                               handleInitiateUnlockGroupPrep(
                                 selectedParam,
                                 "logarithmicCalculation4Point",
+                              )
+                            }
+                          />
+                        )}
+
+                        {logarithmicCalculation5PointTemplate && (
+                          <GenericCalculationSection
+                            parameterId={selectedParam.id}
+                            template={logarithmicCalculation5PointTemplate}
+                            isActive={(
+                              activePreparationGroups[selectedParam.id] || []
+                            ).includes("logarithmicCalculation5Point")}
+                            isPreparationLocked={
+                              !!groupPrepCompletedAtPerParam[selectedParam.id]?.[
+                                "logarithmicCalculation5Point"
+                              ] || isPreparationLocked
+                            }
+                            shouldDisableContent={shouldDisableContent}
+                            canManagePrep={canManagePrep}
+                            isFullyLocked={isFullyLocked}
+                            role={role}
+                            completedAt={
+                              groupPrepCompletedAtPerParam[selectedParam.id]?.[
+                                "logarithmicCalculation5Point"
+                              ] || null
+                            }
+                            showPreparations={false}
+                            standardPreparations={[]}
+                            handleAddStandardPreparation={() => {}}
+                            handleRemoveStandardPreparation={() => {}}
+                            handleStandardPreparationStepChange={() => {}}
+                            samplePreparations={[]}
+                            renderSamplePreparationEditor={() => null}
+                            handleAddSamplePreparation={() => {}}
+                            handleRemoveSamplePreparation={() => {}}
+                            handleSamplePreparationStepChange={() => {}}
+                            calculations={
+                              (calculationsGenericPerParam ?? {})[
+                                selectedParam.id
+                              ] || []
+                            }
+                            assignedStandards={addedStandards[selectedParam.id] || []}
+                            getFilesForPrep={getFilesForPrep}
+                            handleAddPrepFiles={handleAddPrepFiles}
+                            handleRemovePrepFile={handleRemovePrepFile}
+                            handleAddCalculation={handleAddCalculationGeneric}
+                            handleRemoveCalculation={handleRemoveCalculationGeneric}
+                            handleFieldChange={handleGenericFieldChange}
+                            handleGroupFieldChange={handleGenericGroupFieldChange}
+                            handleAddGroupRow={handleAddGenericGroupRow}
+                            handleRemoveGroupRow={handleRemoveGenericGroupRow}
+                            handleSelectStandardPreparation={
+                              handleSelectGenericStandardPreparation
+                            }
+                            handleSelectSamplePreparation={
+                              handleSelectGenericSamplePreparation
+                            }
+                            onComplete={() =>
+                              handleInitiateCompleteGroupPrep(
+                                selectedParam,
+                                "logarithmicCalculation5Point",
+                              )
+                            }
+                            onUnlock={() =>
+                              handleInitiateUnlockGroupPrep(
+                                selectedParam,
+                                "logarithmicCalculation5Point",
                               )
                             }
                           />
